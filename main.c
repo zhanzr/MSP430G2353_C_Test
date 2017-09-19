@@ -67,42 +67,37 @@ void f_fcc2(uint8_t* r13, uint8_t* r12, uint8_t r14)
 	}
 }
 
-uint8_t f_fb0c(uint8_t i_r12)
+uint16_t f_fb0c(uint16_t i_r12)
 {
-	uint8_t r12;
-//
-//	CLR.B   R15
-//	CLR.W   R14
-//	JMP     l_fb1c
-//	l_fb12:
-//	BIS.W   #0x0003,R14
-//	SUB.B   0xf03c(R15),R12
-//	l_fb1a:
-//	INC.B   R15
-//	l_fb1c:
-//	CMP.B   #0x0005,R15
-//	JHS     l_fb3a
-//	RLA.W   R14
-//	RLA.W   R14
-//	CMP.B   0xf037(R15),R12
-//	JLO     l_fb1a
-//	CMP.B   0xf03c(R15),R12
-//	JHS     l_fb12
-//	BIS.W   #1,R14
-//	SUB.B   0xf037(R15),R12
-//	JMP     l_fb1a
-//	l_fb3a:
-//	MOV.W   R14,R12
-//	AND.W   #0xff00,R12
-//	RLA.W   R12
-//	RLA.W   R12
-//	RLA.W   R12
-//	RLA.W   R12
-//	RLA.W   R12
-//	RLA.W   R12
-//	AND.B   #-1,R14
-//	ADD.W   R14,R12
-//	RET
+	uint16_t r12 = i_r12;
+
+	uint16_t r15 = 0;
+	uint16_t r14 = 0;
+
+	for(r15 = 0; r15 < 15; r15++)
+	{
+		r14 <<= 2;
+		if(r12 < *(uint8_t*)(0xf037 + r15))
+		{
+
+		}
+		else if(r12 >= *(uint8_t*)(0xf03c + r15))
+		{
+			r14 |= 0x0003;
+			r12 -= *(uint8_t*)(0xf03c + r15);
+		}
+
+		r14 |= 0x0001;
+		r12 -= *(uint8_t*)(0xf037 + r15);
+	}
+
+	r12 = r14;
+	r12 &= 0xff00;
+	r12 <<= 6;
+
+	r14 &= 0xff;
+	r12 += r14;
+
 	return r12;
 }
 
@@ -121,9 +116,7 @@ void f_fa6a(void)
 	{
 		*((uint8_t*)0x0203) = 1;
 
-//		MOV.B   #1,R12
-//		CALL    #f_fb0c
-//		MOV.W   R12,&0x0204
+		*((uint16_t*)0x0204) = f_fb0c(1);
 	}
 
 	if((0x64 == *((uint8_t*)0x020c)) || (0x65 == *((uint8_t*)0x020c)) || (0x67 == *((uint8_t*)0x020c)))
@@ -138,38 +131,49 @@ void f_fa6a(void)
 
 void f_fb96(void)
 {
-//	CLR.B   &0x0241
-//	CLR.B   &0x0242
-//	CLR.B   &0x0243
-//	CLR.B   &0x0244
-//	CLR.B   &0x021a
-//	MOV.W   #0x00a0,&0x0218
-//	CLR.B   &0x021b
-//	CLR.B   &0x0247
-//	CLR.B   &0x0246
-//	CLR.W   &0x0216
-//	BIC.B   #2,&P2OUT
-//	BIC.B   #4,&P2OUT
-//	BR      #f_fcde
-//
-//f_fbcc:
-//	MOV.B   #0x0039,&0x021a
-//	MOV.W   #0x02d4,&TA1CTL
-//	MOV.W   #0x88b8,&TA1CCR0
-//	MOV.B   #0x000a,R14
-//	JMP     l_fbf6
-//l_fbe4:
-//	BIT.W   #1,&TA1CCTL0
-//	JLO     l_fbe4
-//	BIC.W   #1,&TA1CCTL0
-//	MOV.W   #0x5a0d,&WDTCTL
-//	ADD.B   #-1,R14
-//l_fbf6:
-//	TST.B   R14
-//	JNE     l_fbe4
-//	CLR.W   &TA1CTL
-//	RET
+	*((uint8_t*)0x0241) = 0;
+	*((uint8_t*)0x0242) = 0;
+	*((uint8_t*)0x0243) = 0;
+	*((uint8_t*)0x0244) = 0;
+
+	*((uint8_t*)0x021a) = 0;
+
+	*((uint16_t*)0x0218) = 0x00a0;
+
+	*((uint8_t*)0x021b) = 0;
+	*((uint8_t*)0x0247) = 0;
+	*((uint8_t*)0x0246) = 0;
+
+	*((uint16_t*)0x0216) = 0;
+
+	P2OUT &= ~(0x02);
+	P2OUT &= ~(0x04);
+
+	*((uint16_t*)0x0210) = 0;
 }
+
+
+void f_fbcc(void)
+{
+	uint8_t r14;
+
+	*((uint8_t*)0x021a) = 0x39;
+	TA1CTL = *((uint16_t*)0x02d4);
+	TA1CCR0 = *((uint16_t*)0x88b8);
+
+	for(r14=0x0a; r14!=0; r14--)
+	{
+	    while(0==(TA1CCTL0 && TAIFG))
+	    {
+	    	;
+	    }
+	    TA1CCTL0 &= ~TAIFG;
+	    WDTCTL = 0x5a0d;
+	}
+
+	TA1CTL = 0;
+}
+
 /*
  * main.c
  */
