@@ -38,6 +38,17 @@ uint8_t ram_0210[0x38] = {0};
 
 #define COMPARATOR_A0 11
 __attribute__((interrupt(COMPARATOR_A0))) void COM_A0_ISR()    {
+//	PUSH    R13
+//		PUSH    R12
+//		PUSH    R15
+//		PUSH    R14
+	TA0CTL |= 0x04;
+	if(0 != (BIT0 & TA0CCTL0))
+	{
+		*(uint8_t*)0x021d = 0x11;
+		*(uint8_t*)0x021e = 0;
+	}
+
 }
 
 void PortInit(void)
@@ -174,6 +185,11 @@ void f_fbcc(void)
 	TA1CTL = 0;
 }
 
+void f_fcde(void)
+{
+	*((uint16_t*)0x0210) = 0;
+}
+
 /*
  * main.c
  */
@@ -199,6 +215,8 @@ int main(void) {
     }
 
     __enable_interrupt();
+
+    f_fbcc();
 
 	while(1) {
 	}
