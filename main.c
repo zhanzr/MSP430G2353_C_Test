@@ -51,33 +51,6 @@ __attribute__((interrupt(COMPARATOR_A0))) void COM_A0_ISR()    {
 
 }
 
-void PortInit(void)
-{
-	P1DIR = 0x00fc;
-	P1OUT = 0;
-	P2SEL = 0;
-	P2DIR = 0xff;
-	P2OUT = 0;
-}
-
-void ComparatorInit(void)
-{
-	CACTL2 = 0x0e;
-	CAPD = 0x03;
-	CACTL1 = 0x0a;
-}
-
-void f_fcc2(uint8_t* r13, uint8_t* r12, uint8_t r14)
-{
-	while(r14!=0)
-	{
-		*r12 = *r13;
-		r13++;
-		r12++;
-		r14--;
-	}
-}
-
 uint16_t f_fb0c(uint16_t i_r12)
 {
 	uint16_t r12 = i_r12;
@@ -116,11 +89,11 @@ void f_fa6a(void)
 {
 	if(-1 == *(int16_t*)0x1020)
 	{
-		f_fcc2((uint8_t*)0x1053, (uint8_t*)0x0203, 0x0d);
+		byte_memcpy_fcc2((uint8_t*)0x0203, (uint8_t*)0x1053, 0x0d);
 	}
 	else
 	{
-		f_fcc2((uint8_t*)0x1013, (uint8_t*)0x0203, 0x0d);
+		byte_memcpy_fcc2((uint8_t*)0x0203, (uint8_t*)0x1013, 0x0d);
 	}
 
 	if(*(uint8_t*)0x0203 < 0xf3)
@@ -157,8 +130,8 @@ void f_fb96(void)
 
 	*((uint16_t*)0x0216) = 0;
 
-	P2OUT &= ~(0x02);
-	P2OUT &= ~(0x04);
+	P2OUT &= ~BIT1;
+	P2OUT &= ~BIT2;
 
 	*((uint16_t*)0x0210) = 0;
 }
@@ -185,7 +158,63 @@ void f_fbcc(void)
 	TA1CTL = 0;
 }
 
-void f_fcde(void)
+//Make Flag
+void MakeFlag_fc5a(void)
+{
+	*(uint8_t*)0x0241 = 0x00aa;
+	*(uint8_t*)0x0242 = 0x0055;
+	*(uint8_t*)0x0243 = 0x00cc;
+	*(uint8_t*)0x0244 = 0x0033;
+}
+
+void PortInit(void)
+{
+	P1DIR = 0x00fc;
+	P1OUT = 0;
+	P2SEL = 0;
+	P2DIR = 0xff;
+	P2OUT = 0;
+}
+
+//System Initialization for C Runtime
+//Clear 0x210 -> 0x248
+
+void ComparatorInit(void)
+{
+	CACTL2 = 0x0e;
+	CAPD = 0x03;
+	CACTL1 = 0x0a;
+}
+
+//Repeating Test the Comparator Output
+void MeasCAOut_fcb2(void)
+{
+	*(uint8_t*)0x0206 = 0;
+	TestCAOut_fcd2();
+	TestCAOut_fcd2();
+	TestCAOut_fcd2();
+}
+
+void byte_memcpy_fcc2(uint8_t* dst, uint8_t* src, uint8_t sz)
+{
+	uint8_t cnt = sz;
+	while(cnt--)
+	{
+		*dst++ = *src++;
+	}
+}
+
+//Test the Comparator Output
+void TestCAOut_fcd2(void)
+{
+	if(0 != (CACTL2 & BIT0))
+	{
+		*(uint8_t*)0x0206 = *(uint8_t*)0x0206 + 1;
+	}
+}
+
+//Clear Var @ 0x0210
+void Clr210_fcde(void)
 {
 	*((uint16_t*)0x0210) = 0;
 }
@@ -194,12 +223,15 @@ void f_fcde(void)
  * main.c
  */
 int main(void) {
-    WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
+	// Stop watchdog timer
+    WDTCTL = WDTPW | WDTHOLD;
+    // Set DCO as 1MHz
     BCSCTL1 = CALBC1_1MHZ;
     DCOCTL = CALDCO_1MHZ;
     BCSCTL1 |= 0x80;
     BCSCTL2 = 0;
     BCSCTL3 = 0x20;
+    //Switch the OSC
     _BIS_SR(OSCOFF);
 
     PortInit();
