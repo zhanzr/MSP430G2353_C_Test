@@ -51,43 +51,119 @@ __attribute__((interrupt(COMPARATOR_A0))) void COM_A0_ISR()    {
 
 }
 
-uint16_t f_fb0c(uint16_t i_r12)
+//TODO:Unclear feature
+void f_f888(void)
 {
-	uint16_t r12 = i_r12;
 
-	uint16_t r15 = 0;
-	uint16_t r14 = 0;
-
-	for(r15 = 0; r15 < 15; r15++)
-	{
-		r14 <<= 2;
-		if(r12 < *(uint8_t*)(0xf037 + r15))
-		{
-
-		}
-		else if(r12 >= *(uint8_t*)(0xf03c + r15))
-		{
-			r14 |= 0x0003;
-			r12 -= *(uint8_t*)(0xf03c + r15);
-		}
-
-		r14 |= 0x0001;
-		r12 -= *(uint8_t*)(0xf037 + r15);
-	}
-
-	r12 = r14;
-	r12 &= 0xff00;
-	r12 <<= 6;
-
-	r14 &= 0xff;
-	r12 += r14;
-
-	return r12;
 }
 
+//Flash Operation
+void f_f98c(void)
+{
+	uint16_t* p_r15 = 0x0202;
+	uint16_t* p_r14;
+	uint8_t r13;
+
+	if(0xFFFF != *((uint16_t*)0x1020))
+	{
+		p_r14 = 0x1052;
+	}
+	else
+	{
+		p_r14 = 0x1012;
+	}
+
+	WDTCTL = 0x5a80;
+	FCTL2 = 0xa542;
+	FCTL3 = 0xa500;
+	FCTL1 = 0xa502;
+
+	*p_r14 = 0;
+	for(r13=0; r13<7; r13++)
+	{
+		*p_r14 = *p_r15;
+		p_r14++;
+		p_r15++;
+	}
+
+	*p_r14 = 0;
+	FCTL1 = 0xa500;
+
+	if(p_r14 >= 0x1040)
+	{
+		p_r14 = 0x1012;
+	}
+	else
+	{
+		p_r14 = 0x1052;
+	}
+
+	FCTL1 = 0xa502;
+	*p_r14 = 0;
+	FCTL3 = 0xa510;
+	FCTL2 = 0xa500;
+}
+
+//TODO:Unclear feature
+uint8_t f_fa06(uint16_t i_r12)
+{
+	uint8_t r_r12;
+	uint8_t r_r14=0;
+
+	if(BIT1 & i_r12)
+	{
+		r_r14 = BIT1;
+	}
+	else if(BIT0 & i_r12)
+	{
+		r_r14 = BIT0;
+	}
+
+	if(BIT3 & i_r12)
+	{
+		r_r14 += 6;
+	}
+	else if(BIT2 & i_r12)
+	{
+		r_r14 += 3;
+	}
+
+	if(BIT5 & i_r12)
+	{
+		r_r14 += 0x12;
+	}
+	else if(BIT4 & i_r12)
+	{
+		r_r14 += 9;
+	}
+
+	if((uint8_t)i_r12 < 0)
+	{
+		r_r14 += 0x36;
+	}
+	else if(BIT6 & i_r12)
+	{
+		r_r14 += 0x1b;
+	}
+
+	if((uint16_t)i_r12 < 0)
+	{
+		r_r14 += 0xa2;
+	}
+	else if(BITE & i_r12)
+	{
+		r_r14 += 0x51;
+	}
+
+	r_r12 = r_r14;
+
+	return r_r12;
+}
+
+//TODO:Unclear feature
 void f_fa6a(void)
 {
-	if(-1 == *(int16_t*)0x1020)
+	if(0xFFFF == *(uint16_t*)0x1020)
 	{
 		byte_memcpy_fcc2((uint8_t*)0x0203, (uint8_t*)0x1053, 0x0d);
 	}
@@ -96,7 +172,7 @@ void f_fa6a(void)
 		byte_memcpy_fcc2((uint8_t*)0x0203, (uint8_t*)0x1013, 0x0d);
 	}
 
-	if(*(uint8_t*)0x0203 < 0xf3)
+	if(*(uint8_t*)0x0203 >= 0xf3)
 	{
 		*((uint8_t*)0x0203) = 1;
 
@@ -113,7 +189,103 @@ void f_fa6a(void)
 	}
 }
 
-void f_fb96(void)
+//TODO:Unclear feature
+void P1_2_fac4(void)
+{
+	if(0 == (*(uint8_t*)0x021a & 0x40))
+	{
+		if(0 == (*(uint8_t*)0x021a & 0x05))
+		{
+			P1OUT |= BIT2;
+			TA0CTL |= TACLR;
+			TA0CCTL0 &= ~TAIFG;
+
+		    while(0==(TA0CCTL0 && TAIFG))
+		    {
+		    	;
+		    }
+			P1OUT &= ~BIT2;
+		}
+	}
+	else
+	{
+		if(0 == (*(uint8_t*)0x021a & 0x28))
+		{
+			P1OUT |= BIT2;
+			TA0CTL |= TACLR;
+			TA0CCTL0 &= ~TAIFG;
+
+		    while(0==(TA0CCTL0 && TAIFG))
+		    {
+		    	;
+		    }
+			P1OUT &= ~BIT2;
+		}
+	}
+}
+
+//TODO:Unclear feature
+uint16_t f_fb0c(uint8_t i_r12)
+{
+	uint8_t r12 = i_r12;
+
+	uint8_t r15 = 0;
+	uint16_t r14 = 0;
+
+	for(r15 = 0; r15 < 5; r15++)
+	{
+		r14 <<= 2;
+		if(r12 >= *(uint8_t*)(0xf037 + r15))
+		{
+			if(r12 < *(uint8_t*)(0xf03c + r15))
+			{
+				r14 |= BIT0;
+				r12 -= *(uint8_t*)(0xf03c + r15);
+			}
+			else
+			{
+				r14 |= 0x0003;
+				r12 -= *(uint8_t*)(0xf03c + r15);
+			}
+		}
+	}
+
+	r12 = r14;
+	r12 &= 0xff00;
+	r12 <<= 6;
+
+	r14 &= 0xff;
+	r12 += r14;
+
+	return r12;
+}
+
+//TODO:Unclear feature
+void f_fb52(void)
+{
+	if(0 == (*(uint8_t*)0x021a & 0x24))
+	{
+		*(uint8_t*)0x021a |= BIT7;
+		*(uint16_t*)0x0210 |= BIT3;
+		*(uint8_t*)0x0226 = *(uint8_t*)0x0203;
+	}
+	else if(0 == (*(uint8_t*)0x021a & 0x4))
+	{
+		*(uint16_t*)0x0210 |= BIT3;
+		*(uint8_t*)0x0226 = *(uint8_t*)0x0203;
+	}
+	else if(0 == (*(uint8_t*)0x021a & 0x20))
+	{
+		*(uint16_t*)0x0210 |= BIT3;
+		*(uint8_t*)0x0226 = 1 + *(uint8_t*)0x0203;
+	}
+	else
+	{
+		;
+	}
+}
+
+void ClearOut_fb96(void)
 {
 	*((uint8_t*)0x0241) = 0;
 	*((uint8_t*)0x0242) = 0;
@@ -136,14 +308,14 @@ void f_fb96(void)
 	*((uint16_t*)0x0210) = 0;
 }
 
-
+//TODO:Unclear feature
 void f_fbcc(void)
 {
 	uint8_t r14;
 
 	*((uint8_t*)0x021a) = 0x39;
-	TA1CTL = *((uint16_t*)0x02d4);
-	TA1CCR0 = *((uint16_t*)0x88b8);
+	TA1CTL = 0x02d4;
+	TA1CCR0 = 0x88b8;
 
 	for(r14=0x0a; r14!=0; r14--)
 	{
@@ -156,6 +328,48 @@ void f_fbcc(void)
 	}
 
 	TA1CTL = 0;
+}
+
+//TODO:Unclear feature
+void f_fc00(void)
+{
+	if(*(uint8_t*)0x021a < 0x40)
+	{
+		if(0 == (*(uint8_t*)0x021a & 0x05))
+		{
+			*(uint8_t*)0x0226 = *(uint8_t*)0x0203;
+			f_f888();
+		}
+
+	}
+	else
+	{
+		if(0 == (*(uint8_t*)0x021a & 0x28))
+		{
+			*(uint8_t*)0x0226 = 1 + *(uint8_t*)0x0203;
+			f_f888();
+		}
+	}
+}
+
+//TODO: Unclear feature
+uint16_t f_fc32(void)
+{
+	if(*(uint16_t*)0x0210 < 0x40)
+	{
+		*(uint16_t*)0x0210 &= ~BIT3;
+		*(uint8_t*)0x023f = 0;
+		return 0;
+	}
+	else
+	{
+		*(uint8_t*)0x023f = 1 + *(uint8_t*)0x023f;
+		if(*(uint8_t*)0x023f == 0xFF)
+		{
+			*(uint16_t*)0x0210 |= ~BIT4;
+		}
+		return 1;
+	}
 }
 
 //Make Flag
@@ -176,15 +390,15 @@ void PortInit(void)
 	P2OUT = 0;
 }
 
-//System Initialization for C Runtime
-//Clear 0x210 -> 0x248
-
 void ComparatorInit(void)
 {
 	CACTL2 = 0x0e;
 	CAPD = 0x03;
 	CACTL1 = 0x0a;
 }
+
+//System Initialization for C Runtime
+//Clear 0x210 -> 0x248
 
 //Repeating Test the Comparator Output
 void MeasCAOut_fcb2(void)
@@ -237,7 +451,7 @@ int main(void) {
     PortInit();
     ComparatorInit();
     f_fa6a();
-    f_fb96();
+    ClearOut_fb96();
     TA0CTL = 0x0224;
     TA0CCR0 = 0xea60;
 
