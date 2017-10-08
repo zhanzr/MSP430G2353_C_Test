@@ -36,6 +36,18 @@ const uint16_t code_f000_f041[] = {
 #pragma location=0x0210
 uint8_t ram_0210[0x38] = {0};
 
+typedef struct Sreg16
+{
+	uint8_t low;
+	uint8_t high;
+}bytePair;
+
+typedef union Ureg16
+{
+	uint16_t w;
+	bytePair bs;
+}reg16;
+
 #define COMPARATOR_A0 11
 __attribute__((interrupt(COMPARATOR_A0))) void COM_A0_ISR()    {
 //	PUSH    R13
@@ -43,8 +55,10 @@ __attribute__((interrupt(COMPARATOR_A0))) void COM_A0_ISR()    {
 //		PUSH    R15
 //		PUSH    R14
 	uint16_t* p_r4;
-	uint16_t r14;
-	uint16_t r15;
+	reg16 r12;
+	reg16 r13;
+	reg16 r14;
+	reg16 r15;
 
 	TA0CTL |= BIT2;
 	if(0 != (BIT0 & TA0CCTL0))
@@ -112,13 +126,13 @@ __attribute__((interrupt(COMPARATOR_A0))) void COM_A0_ISR()    {
 	//CLRC
 	*(uint8_t*)0x0202 = *(uint8_t*)0x0202 / 2;
 
-	r14 = *(uint8_t*)0x0202;
-	*(uint8_t*)0x021c = r14;
-	r15 = *(uint8_t*)0x0200;
-	r15 += *(uint8_t*)0x0201;
-	r15 += r14;
-	*(uint8_t*)0x0220 = r15;
-	if((r14 == 0x3c) || (r14 == 0x4f))
+	r14.bs.low = *(uint8_t*)0x0202;
+	*(uint8_t*)0x021c = r14.bs.low;
+	r15.bs.low = *(uint8_t*)0x0200;
+	r15.bs.low += *(uint8_t*)0x0201;
+	r15.bs.low += r14.bs.low;
+	*(uint8_t*)0x0220 = r15.bs.low;
+	if((r14.bs.low == 0x3c) || (r14.bs.low == 0x4f))
 	{
 		*(uint16_t*)0x0210 |= BIT0;
 		*(uint8_t*)0x021d = 8;
@@ -145,10 +159,10 @@ __attribute__((interrupt(COMPARATOR_A0))) void COM_A0_ISR()    {
 	}
 	else
 	{
-		r14 = *(uint8_t*)0x0240;
-		r15 = *(uint8_t*)0x0203;
-		r15 ++;
-		if(r15 == r14)
+		r14.bs.low = *(uint8_t*)0x0240;
+		r15.bs.low = *(uint8_t*)0x0203;
+		r15.w ++;
+		if(r15.w == r14.w)
 		{
 			*(uint8_t*)0x021a |= BIT6;
 			*(uint16_t*)0x0210 |= BIT1;
@@ -174,7 +188,83 @@ l_f174:
 	goto COM_A_ISR_EXIT_F5E4;
 
 l_f180:
+	if(BIT0 & *(uint16_t*)0x0210)
+	{
+		*(uint8_t*)0x0202 = *(uint8_t*)0x0202 /2;
+		*(uint8_t*)0x0201 = *(uint8_t*)0x0201 * 2;
+		*(uint8_t*)0x0202 = *(uint8_t*)0x0202 + *(uint8_t*)0x0201;
+		r15.bs.low = *(uint8_t*)0x021e;
+		*(uint8_t*)(0x22d+r15.bs.low) = *(uint8_t*)0x0202;
+		if(r15.bs.low == 1)
+		{
+			r14.bs.low = *(uint8_t*)0x0202;
+			r14.bs.low &= 0x0f;
+			r14.bs.low += 2;
+			*(uint8_t*)0x021f = r14.bs.low;
+		}
+		else
+		{
+			*(uint8_t*)0x021e = *(uint8_t*)0x021e + 1;
+			if(*(uint8_t*)0x021e == *(uint8_t*)0x021f)
+			{
+				if(*(uint8_t*)0x0220 == *(uint8_t*)0x0202)
+				{
+					if((0==(BIT1 &*(uint16_t*)0x0210))&&
+							(*(uint8_t*)0x021c == 0x3c))
+					{
+						goto l_f446;
+					}
+					else
+					{
+						goto l_f1d4;
+					}
+				}
+				else
+				{
+					goto l_f446;
+				}
+			}
+			else
+			{
+				goto l_f458;
+			}
+		}
+	}
+	else
+	{
+		goto l_f46a;
+	}
+l_f1d4:
+	r15.bs.low = *(uint8_t*)0x022f;
+	if(r15.bs.low < 0x0b)
+	{
+		r14.bs.low = 0x05;
+		r13.bs.low = r15.bs.low;
+		r12.w = r13.w;
+		r13.w = r13.w * 4;
+		r13.w += r12.w;
+		r13.w += 0xf000;
+		r12.w += 0x0221;
+		byte_memcpy_fcc2(r12.w, r13.w, r14.bs.low);
+		r15.w = (int8_t)r15.bs.low;
+		if(r15.w <= 0x000b)
+		{
+			r15.w = r15.w * 2;
+			//A unknown Jump table, maybe switch case statement
+		}
+		else
+		{
+			goto l_f446;
+		}
+	}
+	else
+	{
+		goto l_f446;
+	}
 
+l_f446:
+l_f458:
+l_f46a:
 COM_A_ISR_EXIT_TA0IFG_F5E0:
 	TA0CCTL0 |= BIT0;
 COM_A_ISR_EXIT_F5E4:
@@ -670,6 +760,9 @@ void MeasCAOut_fcb2(void)
 
 void byte_memcpy_fcc2(uint8_t* dst, uint8_t* src, uint8_t sz)
 {
+	//dst -> R12
+	//src -> R13
+	//sz	-> R14
 	uint8_t cnt = sz;
 	while(cnt--)
 	{
